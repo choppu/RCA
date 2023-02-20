@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react"
 import TrackPlayer, {Event, State, Capability } from "react-native-track-player"
-import { StyleSheet, View, TouchableOpacity, Text, Image } from "react-native"
+import { StyleSheet, View, TouchableOpacity, Text, Image, Linking } from "react-native"
 
 const config = {
     title: "Radio città aperta",
     streamUrl: "https://www.radiocittaperta.it/redirected-weighted.php",
     streamDataUrl: "https://www.radiocittaperta.it/index.php?__api=1&onair=1",
     logo: "https://radiocittaperta.it/img/logo.png",
-    artist: "RCA"
+    artist: "RCA",
+    whatsApp: "393332675681"
 }
 
 const tracks = [
@@ -24,6 +25,7 @@ const App = () => {
     const [title, setTitle] = useState('RCA');
     const [song, setSong] = useState('');
     const [cover, setCover] = useState(config.logo);
+    const [playerState, setState] = useState(false);
 
     const setUpTrackPlayer = async () => {
      try {
@@ -40,6 +42,7 @@ const App = () => {
                 Capability.Pause
             ],
         });
+        await getTrackData();
      } catch (e) {
       //console.error(e);
     }
@@ -48,31 +51,32 @@ const App = () => {
  const handlePlayPress = async() => {
       if(await TrackPlayer.getState() == State.Playing) {
         TrackPlayer.pause();
+        setState(false);
       }
       else {
         TrackPlayer.play();
+        setState(true);
       }
   }
 
   const getTrackData = async() => {
         let trackInfo;
-      setTimeout(async() => {
+
         const resp = await fetch(config.streamDataUrl);
         trackInfo = await resp.json();
         setTitle(trackInfo.title);
         setSong(trackInfo.song);
         setCover(trackInfo.cover);
         TrackPlayer.updateMetadataForTrack(0, {
-            title: trackInfo.title,
-            artist: trackInfo.song,
-            artwork: trackInfo.cover
+           title: trackInfo.title,
+           artist: trackInfo.song,
+           artwork: trackInfo.cover
         });
-      }, 10000);
+         setTimeout(getTrackData, 10000);
    };
 
   useEffect(() => {
     setUpTrackPlayer();
-    getTrackData();
     return () => {};
   }, []);
 
@@ -81,42 +85,85 @@ const App = () => {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "black",
+      backgroundColor: "#1E2223",
     },
     btn: {
-      backgroundColor: "#ff0044",
-      padding: 15,
-      borderRadius: 5,
-      margin: 10,
-      width: 160,
+      backgroundColor: "#8F0A26",
+      borderRadius: 80,
+      shadowColor: 'rgba(0, 0, 0, 0.7)',
+      shadowOpacity: 0.8,
+      elevation: 6,
+      shadowRadius: 15 ,
+      shadowOffset : { width: 1, height: 13},
+      marginBottom: 50
     },
-    text: {
-      fontSize: 30,
-      color: "white",
-      textAlign: "center"
-    },
-    row: {
-      flexDirection: "row",
+    btnPlay: {
+      width: 50,
+      height: 50,
+      marginTop: 20,
       marginBottom: 20,
+      marginLeft: 25,
+      marginRight: 15
     },
+    btnPause: {
+      width: 30,
+      height: 30,
+      margin: 30
+    },
+    title: {
+      color: "white",
+      textAlign: "center",
+      fontSize: 17,
+      fontFamily: 'monospace',
+      marginBottom: 5
+    },
+    songText: {
+      color: "white",
+      textAlign: "center",
+      fontSize: 13,
+      fontFamily: 'monospace',
+      marginBottom: 25
+    },
+    cover: {
+      marginTop: 50,
+      width: 250,
+      height: 250,
+      borderRadius: 250,
+      marginBottom: 48
+    },
+    bottomRow: {
+        backgroundColor: '#8F0A26',
+        flex: 1,
+        width: '100%',
+        maxHeight: 80,
+        justifyContent: "center",
+        alignItems: "center"
+    },
+    whatsapp: {
+        width: 60,
+        height: 60
+    }
   })
 
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        <TouchableOpacity style={styles.btn} onPress={() => handlePlayPress()}>
-          <Text style={styles.text}>Play</Text>
-        </TouchableOpacity>
-      </View>
-      <View>
-        <Text style={styles.text}>{title}</Text>
-      </View>
-      <View>
-        <Text style={styles.text}>{song}</Text>
-      </View>
-      <View>
-        <Image source={{uri: cover}} style={{width: 300, height: 300}} />
-      </View>
+        <View>
+            <Image source={{uri: cover}} style={styles.cover} />
+        </View>
+         <View>
+            <Text style={styles.title}>{title}</Text>
+         </View>
+         <View>
+            <Text style={styles.songText}>{song}</Text>
+         </View>
+        <View>
+            <TouchableOpacity style={styles.btn} onPress={() => handlePlayPress()}>
+                <Image style={playerState ? styles.btnPause : styles.btnPlay} source={playerState ? require("./pause.png") : require("./play.png")} />
+            </TouchableOpacity>
+        </View>
+        <View style={styles.bottomRow}>
+            <Image source={require('./whatsapp.png')} style={styles.whatsapp} onPress={() => Linking.openURL('https://wa.me/' + {whatsApp})} />
+        </View>
     </View>
   )
 }
