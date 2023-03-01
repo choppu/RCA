@@ -5,10 +5,11 @@ import { StyleSheet, View, TouchableOpacity, Text, Image, Linking } from "react-
 const config = {
     title: "Radio città aperta",
     streamUrl: "https://www.radiocittaperta.it/redirected-weighted.php",
-    streamDataUrl: "https://www.radiocittaperta.it/index.php?__api=1&onair=1",
+    streamDataUrl: "https://www.radiocittaperta.it/index.php?__api=1&onair=1&c=",
     logo: "https://radiocittaperta.it/img/logo.png",
     artist: "RCA",
-    whatsApp: "393332675681"
+    whatsApp: "393332675681",
+    pollInterval: 30000
 }
 
 const tracks = [
@@ -62,7 +63,7 @@ const App = () => {
   const getTrackData = async() => {
         let trackInfo;
 
-        const resp = await fetch(config.streamDataUrl);
+        const resp = await fetch(config.streamDataUrl + new Date().getTime());
         trackInfo = await resp.json();
         setTitle(trackInfo.title);
         setSong(trackInfo.song);
@@ -72,7 +73,7 @@ const App = () => {
            artist: trackInfo.song,
            artwork: trackInfo.cover
         });
-         setTimeout(getTrackData, 10000);
+         setTimeout(getTrackData, pollInterval);
    };
 
   useEffect(() => {
@@ -86,6 +87,12 @@ const App = () => {
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: "#1E2223",
+    },
+
+    topContainer: {
+      maxHeight: '88%',
+      justifyContent: "center",
+      alignItems: "center",
     },
     btn: {
       backgroundColor: "#8F0A26",
@@ -125,7 +132,7 @@ const App = () => {
       marginBottom: '5%'
     },
     cover: {
-      marginTop: '15%',
+      marginTop: '13%',
       width: 250,
       height: 250,
       borderRadius: 250,
@@ -135,7 +142,7 @@ const App = () => {
         backgroundColor: '#8F0A26',
         flex: 1,
         width: '100%',
-        maxHeight: '18%',
+        maxHeight: '12%',
         justifyContent: "center",
         alignItems: "center"
     },
@@ -147,6 +154,7 @@ const App = () => {
 
   return (
     <View style={styles.container}>
+    <View style={styles.topContainer}>
         <View>
             <Image source={{uri: cover}} style={styles.cover} />
         </View>
@@ -160,6 +168,7 @@ const App = () => {
             <TouchableOpacity style={styles.btn} onPress={() => handlePlayPress()}>
                 <Image style={playerState ? styles.btnPause : styles.btnPlay} source={playerState ? require("./pause.png") : require("./play.png")} />
             </TouchableOpacity>
+        </View>
         </View>
         <View style={styles.bottomRow}>
             <Image source={require('./whatsapp.png')} style={styles.whatsapp} onPress={() => Linking.openURL('https://wa.me/' + {whatsApp})} />
