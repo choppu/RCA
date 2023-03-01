@@ -122,20 +122,20 @@ const App = () => {
       textAlign: "center",
       fontSize: 13,
       fontFamily: 'monospace',
-      marginBottom: 25
+      marginBottom: '5%'
     },
     cover: {
-      marginTop: 50,
+      marginTop: '15%',
       width: 250,
       height: 250,
       borderRadius: 250,
-      marginBottom: 48
+      marginBottom: '12%'
     },
     bottomRow: {
         backgroundColor: '#8F0A26',
         flex: 1,
         width: '100%',
-        maxHeight: 80,
+        maxHeight: '18%',
         justifyContent: "center",
         alignItems: "center"
     },
