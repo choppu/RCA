@@ -73,7 +73,7 @@ const App = () => {
            artist: trackInfo.song,
            artwork: trackInfo.cover
         });
-         setTimeout(getTrackData, pollInterval);
+         setTimeout(getTrackData, config.pollInterval);
    };
 
   useEffect(() => {
@@ -90,7 +90,7 @@ const App = () => {
     },
 
     topContainer: {
-      maxHeight: '88%',
+      height: '88%',
       justifyContent: "center",
       alignItems: "center",
     },
