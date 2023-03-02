@@ -8,7 +8,7 @@ const config = {
     streamDataUrl: "https://www.radiocittaperta.it/index.php?__api=1&onair=1&c=",
     logo: "https://radiocittaperta.it/img/logo.png",
     artist: "RCA",
-    whatsApp: "393332675681",
+    whatsApp: "https://wa.me/393401974468",
     pollInterval: 30000
 }
 
@@ -171,7 +171,9 @@ const App = () => {
         </View>
         </View>
         <View style={styles.bottomRow}>
-            <Image source={require('./whatsapp.png')} style={styles.whatsapp} onPress={() => Linking.openURL('https://wa.me/' + {whatsApp})} />
+            <TouchableOpacity onPress={() => Linking.openURL(config.whatsApp)}>
+                <Image source={require('./whatsapp.png')} style={styles.whatsapp} />
+            </TouchableOpacity>
         </View>
     </View>
   )
