@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
-import TrackPlayer, {Event, State, Capability } from "react-native-track-player"
-import { StyleSheet, View, TouchableOpacity, Text, Image, Linking } from "react-native"
+import TrackPlayer, {Event, State, Capability, AppKilledPlaybackBehavior} from "react-native-track-player"
+import { StyleSheet, View, TouchableOpacity, Text, Image, Linking, AppState } from "react-native"
 
 const config = {
     title: "Radio città aperta",
@@ -31,9 +31,13 @@ const App = () => {
     const setUpTrackPlayer = async () => {
      try {
         await TrackPlayer.setupPlayer();
+     } catch(e) {}
+     try {
         await TrackPlayer.add(tracks);
         await TrackPlayer.updateOptions({
-            stopWithApp: false,
+            android: {
+                appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+            },
             capabilities: [
                 Capability.Play,
                 Capability.Pause,
@@ -53,8 +57,7 @@ const App = () => {
       if(await TrackPlayer.getState() == State.Playing) {
         TrackPlayer.pause();
         setState(false);
-      }
-      else {
+      } else {
         TrackPlayer.play();
         setState(true);
       }
@@ -80,6 +83,10 @@ const App = () => {
     setUpTrackPlayer();
     return () => {};
   }, []);
+
+  TrackPlayer.addEventListener(Event.PlaybackState, async (e) => {
+    e.state == State.Playing ? setState(true) : setState(false);
+  });
 
   const styles = StyleSheet.create({
     container: {
