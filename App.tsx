@@ -31,9 +31,6 @@ const App = () => {
     const setUpTrackPlayer = async () => {
      try {
         await TrackPlayer.setupPlayer();
-     } catch(e) {}
-     try {
-        await TrackPlayer.add(tracks);
         await TrackPlayer.updateOptions({
             android: {
                 appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
@@ -41,23 +38,36 @@ const App = () => {
             capabilities: [
                 Capability.Play,
                 Capability.Pause,
+                Capability.Stop
             ],
             compactCapabilities: [
                 Capability.Play,
-                Capability.Pause
+                Capability.Pause,
+                Capability.Stop
             ],
         });
-        await getTrackData();
      } catch (e) {
-      //console.error(e);
+      if(await TrackPlayer.getState() == State.Playing) {
+        setState(true);
+      } else {
+        setState(false);
+      }
     }
+
+    try {
+        await getTrackData();
+    } catch(e) {}
   };
 
  const handlePlayPress = async() => {
-      if(await TrackPlayer.getState() == State.Playing) {
+      pstate = await TrackPlayer.getState();
+      if(pstate == State.Playing) {
         TrackPlayer.pause();
         setState(false);
       } else {
+        if (pstate == State.None) {
+            await TrackPlayer.add(tracks);
+        }
         TrackPlayer.play();
         setState(true);
       }
@@ -71,16 +81,21 @@ const App = () => {
         setTitle(trackInfo.title);
         setSong(trackInfo.song);
         setCover(trackInfo.cover);
-        TrackPlayer.updateMetadataForTrack(0, {
-           title: trackInfo.title,
-           artist: trackInfo.song,
-           artwork: trackInfo.cover
-        });
-         setTimeout(getTrackData, config.pollInterval);
+
+        if (await TrackPlayer.getState() != State.None) {
+            await TrackPlayer.updateMetadataForTrack(0, {
+               title: trackInfo.title,
+               artist: trackInfo.song,
+               artwork: trackInfo.cover
+            });
+        }
+
+        setTimeout(getTrackData, config.pollInterval);
    };
 
   useEffect(() => {
     setUpTrackPlayer();
+
     return () => {};
   }, []);
 
@@ -129,14 +144,18 @@ const App = () => {
       textAlign: "center",
       fontSize: 17,
       fontFamily: 'monospace',
-      marginBottom: 5
+      marginBottom: 5,
+      paddingLeft: '5%',
+      paddingRight: '5%',
     },
     songText: {
       color: "white",
       textAlign: "center",
       fontSize: 13,
       fontFamily: 'monospace',
-      marginBottom: '5%'
+      marginBottom: '5%',
+      paddingLeft: '5%',
+      paddingRight: '5%',
     },
     cover: {
       marginTop: '13%',
