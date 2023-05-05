@@ -12,7 +12,7 @@ const config = {
     pollInterval: 30000
 }
 
-const tracks = [
+export const tracks = [
   {
     id: 1,
     url: config.streamUrl,
@@ -63,6 +63,7 @@ const App = () => {
       pstate = await TrackPlayer.getState();
       if(pstate == State.Playing) {
         TrackPlayer.pause();
+        TrackPlayer.reset();
         setState(false);
       } else {
         if (pstate == State.None) {
