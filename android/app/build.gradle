@@ -93,9 +93,9 @@ android {
 
     compileSdkVersion rootProject.ext.compileSdkVersion
 
-    namespace "com.rca"
+    namespace "com.radiocittaperta.app"
     defaultConfig {
-        applicationId "com.rca"
+        applicationId "com.radiocittaperta.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

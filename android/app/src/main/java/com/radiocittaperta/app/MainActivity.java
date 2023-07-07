@@ -1,4 +1,4 @@
-package com.rca;
+package com.radiocittaperta.app;
 
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;

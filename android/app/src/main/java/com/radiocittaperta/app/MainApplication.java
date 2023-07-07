@@ -1,4 +1,4 @@
-package com.rca;
+package com.radiocittaperta.app;
 
 import android.app.Application;
 import com.facebook.react.PackageList;
