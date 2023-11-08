@@ -1,107 +1,117 @@
-import React, { useEffect, useState } from "react"
-import TrackPlayer, {Event, State, Capability, AppKilledPlaybackBehavior} from "react-native-track-player"
-import { StyleSheet, View, TouchableOpacity, Text, Image, Linking, AppState } from "react-native"
+import React, { useEffect, useRef, useState } from "react"
+import TrackPlayer, { Event, State, Capability, AppKilledPlaybackBehavior } from "react-native-track-player"
+import { StyleSheet, View, TouchableOpacity, Text, Image, Linking, AppState, LogBox } from "react-native"
+import { tracks, config, getTrackData } from "./tracks"
+import BackgroundTimer from 'react-native-background-timer';
 
-const config = {
-    title: "Radio città aperta",
-    streamUrl: "https://www.radiocittaperta.it/redirected-weighted.php",
-    streamDataUrl: "https://www.radiocittaperta.it/index.php?__api=1&onair=1&c=",
-    logo: "https://radiocittaperta.it/img/logo.png",
-    artist: "RCA",
-    whatsApp: "https://wa.me/393401974468",
-    pollInterval: 30000
-}
-
-export const tracks = [
-  {
-    id: 1,
-    url: config.streamUrl,
-    title: config.title,
-    artwork: config.logo,
-    artist: config.artist
-  }
-]
 
 const App = () => {
-    const [title, setTitle] = useState('RCA');
-    const [song, setSong] = useState('');
-    const [cover, setCover] = useState(config.logo);
-    const [playerState, setState] = useState(false);
+  LogBox.ignoreLogs(['new NativeEventEmitter']);
+  const [title, setTitle] = useState('RCA');
+  const [song, setSong] = useState('');
+  const [cover, setCover] = useState(config.logo);
+  const [playerState, setState] = useState(false);
 
-    const setUpTrackPlayer = async () => {
-     try {
-        await TrackPlayer.setupPlayer();
-        await TrackPlayer.updateOptions({
-            android: {
-                appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
-            },
-            capabilities: [
-                Capability.Play,
-                Capability.Pause,
-                Capability.Stop
-            ],
-            compactCapabilities: [
-                Capability.Play,
-                Capability.Pause,
-                Capability.Stop
-            ],
-        });
-     } catch (e) {
-      if(await TrackPlayer.getState() == State.Playing) {
-        setState(true);
-      } else {
-        setState(false);
-      }
+  const checkStateForIcon = async () => {
+    const currentState = await TrackPlayer.getState()
+    if (currentState == State.Playing) {
+      setState(true);
+    } else {
+      setState(false);
     }
-
-    try {
-        await getTrackData();
-    } catch(e) {}
-  };
-
- const handlePlayPress = async() => {
-      pstate = await TrackPlayer.getState();
-      if(pstate == State.Playing) {
-        TrackPlayer.pause();
-        TrackPlayer.reset();
-        setState(false);
-      } else {
-        if (pstate == State.None) {
-            await TrackPlayer.add(tracks);
-        }
-        TrackPlayer.play();
-        setState(true);
-      }
   }
 
-  const getTrackData = async() => {
-        let trackInfo;
+  const setUpTrackPlayer = async () => {
 
-        const resp = await fetch(config.streamDataUrl + new Date().getTime());
-        trackInfo = await resp.json();
-        setTitle(trackInfo.title);
-        setSong(trackInfo.song);
-        setCover(trackInfo.cover);
+    try {
+      await TrackPlayer.setupPlayer();
+      await TrackPlayer.updateOptions({
+        android: {
+          appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+        },
+        capabilities: [
+          Capability.Play,
+          Capability.Pause
+        ],
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.Stop
+        ],
+        notificationCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.Stop
+        ]
+      });
+    } catch (e) {
+      await checkStateForIcon();
+    }
+    await getTrackData();
+    await updateScreen();
+    await checkStateForIcon();
+  };
 
-        if (await TrackPlayer.getState() != State.None) {
-            await TrackPlayer.updateMetadataForTrack(0, {
-               title: trackInfo.title,
-               artist: trackInfo.song,
-               artwork: trackInfo.cover
-            });
-        }
+  const updateScreen = async () => {
+    const pstate = await TrackPlayer.getState();
+    const currentTrackNumber = await TrackPlayer.getCurrentTrack();
+    if (currentTrackNumber != null && (await TrackPlayer.getQueue()).length > 0 && pstate == State.Playing) {
+      setTitle(tracks[currentTrackNumber].title);
+      setSong(tracks[currentTrackNumber].artist);
+      setCover(tracks[currentTrackNumber].artwork);
+    } else {
+      setTitle(tracks[1].title);
+      setSong(tracks[1].artist);
+      setCover(tracks[1].artwork);
+    }
+    setTimeout(updateScreen, config.pollInterval);
+  }
 
-        setTimeout(getTrackData, config.pollInterval);
-   };
+  const handlePlayPress = async () => {
+    const pstate = await TrackPlayer.getState();
+    if (pstate == State.Playing) {
+      await TrackPlayer.skip(1)
+      await TrackPlayer.pause()
+      await TrackPlayer.reset()
+      BackgroundTimer.stopBackgroundTimer();
+    } else {
+      if (pstate == State.None || pstate == State.Paused || pstate == State.Stopped || pstate == State.Connecting) {
+        await TrackPlayer.add(tracks)
+      }
+      await TrackPlayer.skip(0)
+      await TrackPlayer.play()
+      try {
+        BackgroundTimer.runBackgroundTimer(() => {
+          getTrackData();
+        },
+          config.pollInterval);
+      } catch (e) { }
+    }
+  }
 
   useEffect(() => {
     setUpTrackPlayer();
 
-    return () => {};
+    return () => { };
   }, []);
 
   TrackPlayer.addEventListener(Event.PlaybackState, async (e) => {
-    e.state == State.Playing ? setState(true) : setState(false);
+    switch (e.state) {
+      case State.Playing:
+      case State.Buffering:
+      case State.Ready:
+        setState(true)
+        break;
+      case State.Paused:
+      case State.Connecting:
+      case State.None:
+      case State.Stopped:
+        setState(false);
+        break;
+      default:
+        setState(false);
+        break;
+    }
   });
 
   const styles = StyleSheet.create({
@@ -123,8 +133,8 @@ const App = () => {
       shadowColor: 'rgba(0, 0, 0, 0.7)',
       shadowOpacity: 0.8,
       elevation: 6,
-      shadowRadius: 15 ,
-      shadowOffset : { width: 1, height: 13},
+      shadowRadius: 15,
+      shadowOffset: { width: 1, height: 13 },
       marginBottom: 50
     },
     btnPlay: {
@@ -166,42 +176,42 @@ const App = () => {
       marginBottom: '12%'
     },
     bottomRow: {
-        backgroundColor: '#8F0A26',
-        flex: 1,
-        width: '100%',
-        maxHeight: '12%',
-        justifyContent: "center",
-        alignItems: "center"
+      backgroundColor: '#8F0A26',
+      flex: 1,
+      width: '100%',
+      maxHeight: '12%',
+      justifyContent: "center",
+      alignItems: "center"
     },
     whatsapp: {
-        width: 60,
-        height: 60
+      width: 60,
+      height: 60
     }
   })
 
   return (
     <View style={styles.container}>
-    <View style={styles.topContainer}>
+      <View style={styles.topContainer}>
         <View>
-            <Image source={{uri: cover}} style={styles.cover} />
+          <Image source={{ uri: cover }} style={styles.cover} />
         </View>
-         <View>
-            <Text style={styles.title}>{title}</Text>
-         </View>
-         <View>
-            <Text style={styles.songText}>{song}</Text>
-         </View>
         <View>
-            <TouchableOpacity style={styles.btn} onPress={() => handlePlayPress()}>
-                <Image style={playerState ? styles.btnPause : styles.btnPlay} source={playerState ? require("./pause.png") : require("./play.png")} />
-            </TouchableOpacity>
+          <Text style={styles.title}>{title}</Text>
         </View>
+        <View>
+          <Text style={styles.songText}>{song}</Text>
         </View>
-        <View style={styles.bottomRow}>
-            <TouchableOpacity onPress={() => Linking.openURL(config.whatsApp)}>
-                <Image source={require('./whatsapp.png')} style={styles.whatsapp} />
-            </TouchableOpacity>
+        <View>
+          <TouchableOpacity style={styles.btn} onPress={() => handlePlayPress()}>
+            <Image style={playerState ? styles.btnPause : styles.btnPlay} source={playerState ? require("./pause.png") : require("./play.png")} />
+          </TouchableOpacity>
         </View>
+      </View>
+      <View style={styles.bottomRow}>
+        <TouchableOpacity onPress={() => Linking.openURL(config.whatsApp)}>
+          <Image source={require('./whatsapp.png')} style={styles.whatsapp} />
+        </TouchableOpacity>
+      </View>
     </View>
   )
 }
