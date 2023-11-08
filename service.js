@@ -1,13 +1,43 @@
-import TrackPlayer, {Event} from "react-native-track-player"
+import TrackPlayer, { Event, State } from "react-native-track-player"
+import { tracks, config, getTrackData } from "./tracks"
+import BackgroundTimer from 'react-native-background-timer';
+
 module.exports = async function () {
+
   const pauseHandler = async () => {
-     const t = await TrackPlayer.getTrack(0);
-     TrackPlayer.pause();
-     TrackPlayer.reset();
-     TrackPlayer.add(t);
+    BackgroundTimer.stopBackgroundTimer();
+    const pstate = await TrackPlayer.getState();
+    if (pstate == State.Playing) {
+      await TrackPlayer.skip(1)
+      await TrackPlayer.pause();
+    }
   };
 
-  TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play())
+  const playHandler = async () => {
+    const pstate = await TrackPlayer.getState();
+    const queue = await TrackPlayer.getQueue();
+    if (pstate == State.None || pstate == State.Paused || pstate == State.Stopped || pstate == State.Buffering || pstate == State.Connecting) {
+      if (queue.length === 0) {
+        await TrackPlayer.add(tracks)
+      }
+      await TrackPlayer.skip(0)
+      await TrackPlayer.play()
+      try {
+        BackgroundTimer.runBackgroundTimer(() => {
+          getTrackData();
+        },
+          config.pollInterval);
+      } catch (e) { }
+    }
+  };
+
+  const stopHandler = async () => {
+    await TrackPlayer.reset();
+    await TrackPlayer.add(tracks);
+    await pauseHandler()
+  }
+
+  TrackPlayer.addEventListener(Event.RemotePlay, playHandler)
   TrackPlayer.addEventListener(Event.RemotePause, pauseHandler)
-  TrackPlayer.addEventListener(Event.RemoteStop, pauseHandler)
+  TrackPlayer.addEventListener(Event.RemoteStop, stopHandler)
 }
